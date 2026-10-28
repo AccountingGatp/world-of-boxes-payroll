@@ -50,22 +50,81 @@ input[type=number]{width:100px;text-align:right}
 .msg.err{background:var(--err-bg);color:var(--err)}
 .msg.ok{background:var(--ok-bg);color:var(--ok)}
 .muted{color:var(--muted)}
-.emp{border-top:1px solid var(--line);padding-top:14px;margin-top:14px}
-.emp h3{margin:0 0 8px;font-size:15px}
+#empDetails{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;border-top:1px solid var(--line);padding-top:14px;margin-top:14px;align-items:start}
+.emp h3{margin:0 0 6px;font-size:13px}
+.emp table,#sumTable{font-size:12px}
+.emp th,.emp td,#sumTable th,#sumTable td{padding:3px 8px}
+.emp th,#sumTable th{font-size:10.5px}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:20px}
 @media(max-width:720px){.grid2{grid-template-columns:1fr}}
 .ot{background:var(--hl);font-weight:600}
 .hidden{display:none}
+.tick.hidden{display:none}
+.tick{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--ok);color:var(--brand-ink);font-weight:700;font-size:13px}
+.top{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+.topbtns{display:flex;gap:8px}
+.sopbtn{font-weight:600;white-space:nowrap;margin-top:2px}
+dialog.rates{width:min(620px,calc(100vw - 32px))}
+dialog.sop{width:min(760px,calc(100vw - 32px));max-height:86vh;overflow:auto;border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--ink);padding:0 22px 18px}
+dialog.sop::backdrop{background:rgba(10,16,28,.5)}
+.sophead{position:sticky;top:0;background:var(--card);display:flex;justify-content:space-between;align-items:center;padding:14px 0 8px;border-bottom:1px solid var(--line)}
+.sophead h3{margin:0;font-size:16px}
+.sop h4{margin:16px 0 4px;font-size:13px;text-transform:uppercase;letter-spacing:.03em;color:var(--muted)}
+.sop p,.sop li{margin:3px 0}
+.sop ol,.sop ul{margin:4px 0;padding-left:22px}
+.sop code{background:var(--bg);border:1px solid var(--line);border-radius:4px;padding:0 4px;font-size:13px}
 .note{font-size:13px;color:var(--muted);margin-top:8px}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>Payroll Automation</h1>
-  <p class="sub">Upload the timesheet CSV, check the hours, download the payroll workbook. Everything runs in your browser; no data is uploaded anywhere.</p>
+  <div class="top">
+    <div>
+      <h1>Payroll Automation</h1>
+      <p class="sub">Upload the timesheet CSV, check the hours, download the payroll workbook. Everything runs in your browser; no data is uploaded anywhere.</p>
+    </div>
+    <div class="topbtns"><button id="ratesBtn" class="sopbtn" type="button">⚙ Rates</button><button id="sopBtn" class="sopbtn" type="button">📖 SOP</button></div>
+  </div>
 
-  <div class="card">
-    <h2><span class="step">1</span> Hourly rates</h2>
+  <dialog id="sopDlg" class="sop">
+    <div class="sophead"><h3>SOP – How to run payroll with this page</h3><button type="button" id="sopClose" class="icon" title="Close">✕</button></div>
+    <h4>Purpose</h4>
+    <p>Turns the time-tracker timesheet export into the payroll workbook that is sent to the client for confirmation (Summary tab + one tab per employee).</p>
+    <h4>Steps</h4>
+    <ol>
+      <li><b>Export the timesheet</b> from the time tracker as CSV for the pay period (Monday to Sunday). Keep the file name as exported, e.g. <code>timesheet_report_2026-10-12_thru_2026-10-25.csv</code>, because the page reads the period from it.</li>
+      <li><b>Check the hourly rates</b> with the <b>⚙ Rates</b> button (top right). If the client has increased a rate, click ✎, enter the new rate and Save. New employee? Type the name exactly as in the timesheet (first + last name) and the rate, then click Add employee.</li>
+      <li><b>Upload the CSV</b> in step 1 (drag it in or click the box). Upload only this one file.</li>
+      <li><b>Check the pay period</b> in step 2. It should read Weekly (7 days) or Biweekly (14 days) with the correct dates. If it is wrong, choose the period type from the dropdown.</li>
+      <li><b>Verify the hours</b> in step 3: compare each person's total, the per-day hours and (biweekly) the week 1 / week 2 hours with the time tracker.</li>
+      <li><b>Read the messages</b> under step 2 and fix or understand every red or yellow message (see below). A green ✓ next to the period type means all checks passed and nothing needs review.</li>
+      <li><b>Download</b> the Excel workbook in step 4, open it and glance over the Summary tab, then send it to the client.</li>
+    </ol>
+    <h4>Overtime rules</h4>
+    <ul>
+      <li><b>Weekly file</b> (7 days): hours above <b>40</b> are overtime.</li>
+      <li><b>Biweekly file</b> (14 days): hours above <b>80</b> in the two weeks are overtime. A week over 40 hours is only shown as a note.</li>
+      <li>Overtime is paid at <b>1.5×</b> the hourly rate. Regular pay and overtime pay are each rounded to the cent.</li>
+      <li>Hours are the <code>hours</code> column of the export, summed per day and per person.</li>
+    </ul>
+    <h4>What the messages mean</h4>
+    <ul>
+      <li><b>No hourly rate for “name”</b> – add the employee with the ⚙ Rates button. The download stays disabled until every employee has a rate.</li>
+      <li><b>Entries outside the period</b> – those hours are not counted. Check that the file covers the right dates, or change the period type.</li>
+      <li><b>Hours differ from start/end time</b> – the exported hours are still used. Check the entry in the time tracker if the difference looks large.</li>
+      <li><b>Missing/invalid date or hours</b> – those rows are ignored; open the CSV and check the listed line numbers.</li>
+      <li><b>Could not read file / missing columns</b> – the file is not the time-tracker export. Re-export it and do not edit it in Excel first.</li>
+    </ul>
+    <h4>Good to know</h4>
+    <ul>
+      <li>Nothing is uploaded anywhere; all work happens in this browser tab. Rates are saved on this computer only, so on another computer re-enter any changed rates.</li>
+      <li>The workbook contains live formulas: Summary reads from each employee tab, so the client can trace every number.</li>
+      <li>Name spelling or capitalisation differences are ignored when matching rates (“Kiara CHAVARRIA” = “kiara chavarria”).</li>
+    </ul>
+  </dialog>
+
+  <dialog id="ratesDlg" class="sop rates">
+    <div class="sophead"><h3>Hourly rates</h3><button type="button" id="ratesClose" class="icon" title="Close">✕</button></div>
     <div class="scroll"><table id="ratesTable"><thead><tr><th>Employee</th><th>Hourly rate ($)</th><th>OT rate (1.5×)</th><th></th></tr></thead><tbody></tbody></table></div>
     <div class="row" style="margin-top:12px">
       <input type="text" id="newName" placeholder="Employee name (as in timesheet)" style="min-width:240px">
@@ -74,10 +133,10 @@ input[type=number]{width:100px;text-align:right}
       <button id="resetRates" class="icon" title="Restore the built-in rates">Reset to defaults</button>
     </div>
     <div class="note">Click ✎ to change a rate. Changes are remembered on this computer and apply to the next calculation. Names match the timesheet (first + last name) ignoring upper/lower case.</div>
-  </div>
+  </dialog>
 
   <div class="card">
-    <h2><span class="step">2</span> Upload timesheet</h2>
+    <h2><span class="step">1</span> Upload timesheet</h2>
     <div class="drop" id="drop"><b>Drop the timesheet file here</b> or click to choose<br><span class="muted">CSV exported from the time tracker (an .xlsx with the same columns also works)</span></div>
     <input type="file" id="file" accept=".csv,.xlsx" class="hidden">
     <div class="file" id="fileInfo"></div>
@@ -85,25 +144,25 @@ input[type=number]{width:100px;text-align:right}
 
   <div id="results" class="hidden">
     <div class="card">
-      <h2><span class="step">3</span> Pay period</h2>
+      <h2><span class="step">2</span> Pay period</h2>
       <div class="row">
         <span id="periodText"></span>
         <label class="muted">Period type
-          <select id="modeSel"><option value="auto">Auto-detect</option><option value="weekly">Weekly (OT above 40 h)</option><option value="biweekly">Biweekly (OT above 80 h)</option></select>
+          <select id="modeSel"><option value="weekly">Weekly (OT above 40 h)</option><option value="biweekly">Biweekly (OT above 80 h)</option></select>
         </label>
-        <span id="modePill"></span>
+        <span id="okTick" class="tick hidden" title="All checks passed">✓</span>
       </div>
       <div id="checks" style="margin-top:8px"></div>
     </div>
 
     <div class="card">
-      <h2><span class="step">4</span> Summary to confirm</h2>
+      <h2><span class="step">3</span> Summary to confirm</h2>
       <div class="scroll"><table id="sumTable"></table></div>
       <div id="empDetails"></div>
     </div>
 
     <div class="card">
-      <h2><span class="step">5</span> Download</h2>
+      <h2><span class="step">4</span> Download</h2>
       <div class="row">
         <button class="primary" id="dl">Download Excel workbook</button>
         <span id="dlName" class="muted"></span>
@@ -295,14 +354,15 @@ function recalc(){
   // period: filename dates win, otherwise Monday-based weeks around the data
   let start, end, source;
   const fm = /(\d{4}-\d{2}-\d{2})\D+?(?:thru|to)\D+?(\d{4}-\d{2}-\d{2})/i.exec(parsed.fileName);
-  const mode = $("modeSel").value;
+  const mode = parsed.manual || "auto";
   if(fm && !isNaN(toUTC(fm[1])) && !isNaN(toUTC(fm[2])) && toUTC(fm[2])>=toUTC(fm[1])){
     start = toUTC(fm[1]); end = toUTC(fm[2]); source = "file name";
   } else { start = mondayOnOrBefore(minD); end = start + (Math.ceil((maxD-start+1)/DAY/7)*7-1)*DAY; source = "dates in the data"; }
   const days = Math.round((end-start)/DAY)+1;
   let type = days===7 ? "weekly" : days===14 ? "biweekly" : (days<=7 ? "weekly" : "biweekly");
   if(mode!=="auto"){ type = mode; end = start + (type==="weekly"?6:13)*DAY; }
-  if(days!==7 && days!==14 && mode==="auto") checks.push({t:"warn", m:`The period in the ${source} spans ${days} days (not 7 or 14). Treated as ${type}; use the Period type menu if that is wrong.`});
+  $("modeSel").value = type;
+  if(days!==7 && days!==14 && mode==="auto") checks.push({t:"warn", m:`The period in the ${source} spans ${days} days (not 7 or 14). Treated as ${type}; change the period type in the menu if that is wrong.`});
   const limit = type==="weekly" ? WEEKLY_LIMIT : BIWEEKLY_LIMIT;
   const nWeeks = type==="weekly" ? 1 : 2;
 
@@ -338,7 +398,7 @@ function recalc(){
     if(e.rate!=null){
       e.regPay = r2(e.reg*e.rate); e.otPay = r2(e.ot*e.rate*OT_MULT); e.pay = r2(e.regPay+e.otPay);
     }
-    if(e.rate==null) checks.push({t:"err", m:`No hourly rate for “${e.fileName}”. Add it in step 1 to enable the download.`});
+    if(e.rate==null) checks.push({t:"err", m:`No hourly rate for “${e.fileName}”. Add it with the ⚙ Rates button (top right) to enable the download.`});
     if(type==="biweekly"){
       e.weekHrs.forEach((h,w)=>{ if(h>WEEKLY_LIMIT) checks.push({t:"warn", m:`${e.name} worked ${hrs(h)} h in week ${w+1} (over 40). Biweekly rule: overtime only counts above ${BIWEEKLY_LIMIT} h.`}); });
     }
@@ -351,10 +411,9 @@ function recalc(){
 function showResults(c, checks){
   $("results").classList.remove("hidden");
   const ck = $("checks"); ck.innerHTML = "";
-  if(!c){ ck.innerHTML = checks.map(x=>`<div class="msg ${x.t}">${esc(x.m)}</div>`).join(""); $("sumTable").innerHTML=""; $("empDetails").innerHTML=""; $("dl").disabled=true; return; }
+  if(!c){ $("okTick").classList.add("hidden"); ck.innerHTML = checks.map(x=>`<div class="msg ${x.t}">${esc(x.m)}</div>`).join(""); $("sumTable").innerHTML=""; $("empDetails").innerHTML=""; $("dl").disabled=true; return; }
   $("periodText").innerHTML = `<b>${us(c.start)} – ${us(c.end)}</b> <span class="muted">(from ${c.source})</span>`;
-  $("modePill").innerHTML = `<span class="pill ${c.type==="weekly"?"ok":"warn"}">${c.type==="weekly"?"Weekly":"Biweekly"} · overtime above ${c.limit} h</span>`;
-  if(!checks.length) checks.push({t:"ok", m:"All checks passed."});
+  $("okTick").classList.toggle("hidden", checks.length>0);
   ck.innerHTML = checks.map(x=>`<div class="msg ${x.t}">${esc(x.m)}</div>`).join("");
 
   let h = `<thead><tr><th>Name</th>${c.type==="biweekly"?"<th>Week 1 hrs</th><th>Week 2 hrs</th>":""}<th>Reg hrs</th><th>Overtime hrs</th><th>Total hrs</th><th>Rate</th><th>Reg pay</th><th>Overtime pay</th><th>Total pay</th></tr></thead><tbody>`;
@@ -370,7 +429,7 @@ function showResults(c, checks){
   $("empDetails").innerHTML = c.list.map(e=>{
     const rowsH = e.dayList.map(d=>`<tr><td>${us(d.t)}</td><td>${DNAMES[new Date(d.t).getUTCDay()]}</td>${c.type==="biweekly"?`<td>Week ${d.week+1}</td>`:""}<td>${hrs(d.h)}</td></tr>`).join("");
     return `<div class="emp"><h3>${esc(e.name)} <span class="muted" style="font-weight:400">— hours per day</span></h3>
-      <div class="scroll"><table style="max-width:420px"><thead><tr><th>Date</th><th>Day</th>${c.type==="biweekly"?"<th>Week</th>":""}<th>Hours</th></tr></thead><tbody>${rowsH}</tbody>
+      <div class="scroll"><table><thead><tr><th>Date</th><th>Day</th>${c.type==="biweekly"?"<th>Week</th>":""}<th>Hours</th></tr></thead><tbody>${rowsH}</tbody>
       <tfoot><tr><td colspan="${c.type==="biweekly"?3:2}">Grand total</td><td>${hrs(e.total)}</td></tr></tfoot></table></div></div>`;
   }).join("");
 
@@ -508,7 +567,7 @@ async function handleFile(file){
   $("fileInfo").textContent = "Reading "+file.name+" …";
   try{
     const rows = await readFile(file);
-    parsed = {rows, fileName:file.name};
+    parsed = {rows, fileName:file.name, manual:null};
     $("fileInfo").textContent = `${file.name} — ${rows.length} time entries read`;
     recalc();
   }catch(err){
@@ -521,7 +580,13 @@ $("file").onchange = e=>{ handleFile(e.target.files[0]); e.target.value=""; };
 ["dragenter","dragover"].forEach(ev=>$("drop").addEventListener(ev,e=>{e.preventDefault();$("drop").classList.add("over");}));
 ["dragleave","drop"].forEach(ev=>$("drop").addEventListener(ev,e=>{e.preventDefault();$("drop").classList.remove("over");}));
 $("drop").addEventListener("drop",e=>handleFile(e.dataTransfer.files[0]));
-$("modeSel").onchange = recalc;
+$("modeSel").onchange = ()=>{ if(parsed){ parsed.manual = $("modeSel").value; recalc(); } };
+$("ratesBtn").onclick = ()=>$("ratesDlg").showModal();
+$("ratesClose").onclick = ()=>$("ratesDlg").close();
+$("ratesDlg").addEventListener("click",e=>{ if(e.target===$("ratesDlg")) $("ratesDlg").close(); });
+$("sopBtn").onclick = ()=>$("sopDlg").showModal();
+$("sopClose").onclick = ()=>$("sopDlg").close();
+$("sopDlg").addEventListener("click",e=>{ if(e.target===$("sopDlg")) $("sopDlg").close(); });
 renderRates();
 window.__payroll = {get calc(){return calc;}};
 })();
